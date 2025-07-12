@@ -22,26 +22,26 @@ def create_risk_manager(llm, memory):
         for i, rec in enumerate(past_memories, 1):
             past_memory_str += rec["recommendation"] + "\n\n"
 
-        prompt = f"""As the Risk Management Judge and Debate Facilitator, your goal is to evaluate the debate between three risk analysts—Risky, Neutral, and Safe/Conservative—and determine the best course of action for the trader. Your decision must result in a clear recommendation: Buy, Sell, or Hold. Choose Hold only if strongly justified by specific arguments, not as a fallback when all sides seem valid. Strive for clarity and decisiveness.
+        prompt = f"""作为风险管理评判员和辩论主持人,您的目标是评估三位风险分析师(激进型、中性型和保守型)之间的辩论,并为交易者确定最佳行动方案。您的决定必须得出明确的建议:买入、卖出或持有。只有在有充分具体论据支持的情况下才选择持有,而不是在所有观点都似乎有效时作为退而求其次的选择。力求清晰和果断。
 
-Guidelines for Decision-Making:
-1. **Summarize Key Arguments**: Extract the strongest points from each analyst, focusing on relevance to the context.
-2. **Provide Rationale**: Support your recommendation with direct quotes and counterarguments from the debate.
-3. **Refine the Trader's Plan**: Start with the trader's original plan, **{trader_plan}**, and adjust it based on the analysts' insights.
-4. **Learn from Past Mistakes**: Use lessons from **{past_memory_str}** to address prior misjudgments and improve the decision you are making now to make sure you don't make a wrong BUY/SELL/HOLD call that loses money.
+决策指南:
+1. **总结关键论点**: 从每位分析师提取最有力的观点,重点关注与背景的相关性。
+2. **提供理由**: 用辩论中的直接引用和反驳论点来支持您的建议。
+3. **完善交易者计划**: 从交易者的原始计划 **{trader_plan}** 开始,根据分析师的见解进行调整。
+4. **从过去的错误中吸取教训**: 利用 **{past_memory_str}** 中的经验教训来纠正之前的判断失误,改进当前的决策,确保不会做出错误的买入/卖出/持有判断而造成损失。
 
-Deliverables:
-- A clear and actionable recommendation: Buy, Sell, or Hold.
-- Detailed reasoning anchored in the debate and past reflections.
+交付成果:
+- 明确且可执行的建议:买入、卖出或持有。
+- 基于辩论和过往反思的详细理由。
 
 ---
 
-**Analysts Debate History:**  
+**分析师辩论历史:**
 {history}
 
 ---
 
-Focus on actionable insights and continuous improvement. Build on past lessons, critically evaluate all perspectives, and ensure each decision advances better outcomes."""
+专注于可执行的见解和持续改进。借鉴过往经验教训,批判性地评估所有观点,确保每个决定都能带来更好的结果。"""
 
         response = llm.invoke(prompt)
 

@@ -17,22 +17,22 @@ def create_social_media_analyst(llm, toolkit):
             ]
 
         system_message = (
-            "You are a social media and company specific news researcher/analyst tasked with analyzing social media posts, recent company news, and public sentiment for a specific company over the past week. You will be given a company's name your objective is to write a comprehensive long report detailing your analysis, insights, and implications for traders and investors on this company's current state after looking at social media and what people are saying about that company, analyzing sentiment data of what people feel each day about the company, and looking at recent company news. Try to look at all sources possible from social media to sentiment to news. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
-            + """ Make sure to append a Makrdown table at the end of the report to organize key points in the report, organized and easy to read.""",
+            "您是一位社交媒体和公司新闻研究分析师,负责分析过去一周特定公司的社交媒体帖子、最新公司新闻和公众情绪。您将获得一个公司的名称,您的目标是撰写一份全面的长篇报告,详细说明您的分析、见解以及对交易者和投资者的启示。这份报告需要基于对该公司社交媒体内容、人们对该公司的评论、每日情绪数据分析以及最新公司新闻的研究。请尽可能查看所有来源,包括社交媒体、情绪数据和新闻。不要简单地说趋势好坏参半,而是要提供详细和细致的分析见解,以帮助交易者做出决策。"
+            + """ 请确保在报告末尾附上一个Markdown表格,以组织和整理报告中的要点,使其易于阅读。"""
+            + " 请用中文回复。",
         )
 
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
                     "system",
-                    "You are a helpful AI assistant, collaborating with other assistants."
-                    " Use the provided tools to progress towards answering the question."
-                    " If you are unable to fully answer, that's OK; another assistant with different tools"
-                    " will help where you left off. Execute what you can to make progress."
-                    " If you or any other assistant has the FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** or deliverable,"
-                    " prefix your response with FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** so the team knows to stop."
-                    " You have access to the following tools: {tool_names}.\n{system_message}"
-                    "For your reference, the current date is {current_date}. The current company we want to analyze is {ticker}",
+                    "您是一个乐于助人的AI助手,正在与其他助手合作。"
+                    "请使用提供的工具来推进问题的解答。"
+                    "如果您无法完全回答,没关系;另一个拥有不同工具的助手会接手您未完成的部分。请尽可能执行您能做的工作以取得进展。"
+                    "如果您或其他任何助手有最终交易建议: **买入/持有/卖出**或可交付成果,"
+                    "请在回复前加上'最终交易建议: **买入/持有/卖出**',以便团队知道可以停止。"
+                    "您可以使用以下工具: {tool_names}。\n{system_message}"
+                    "供您参考,当前日期是 {current_date}。我们要分析的公司是 {ticker}",
                 ),
                 MessagesPlaceholder(variable_name="messages"),
             ]

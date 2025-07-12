@@ -1,9 +1,10 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 import time
 import json
+from utils import Toolkit
+import utils.tushare_mcp as tushare_mcp
 
-
-def create_fundamentals_analyst(llm, toolkit):
+def create_fundamentals_analyst(llm, toolkit: Toolkit):
     def fundamentals_analyst_node(state):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
@@ -13,30 +14,31 @@ def create_fundamentals_analyst(llm, toolkit):
             tools = [toolkit.get_fundamentals_openai]
         else:
             tools = [
-                toolkit.get_finnhub_company_insider_sentiment,
-                toolkit.get_finnhub_company_insider_transactions,
-                toolkit.get_simfin_balance_sheet,
-                toolkit.get_simfin_cashflow,
-                toolkit.get_simfin_income_stmt,
+                # toolkit.get_finnhub_company_insider_sentiment,
+                # toolkit.get_finnhub_company_insider_transactions,
+                # toolkit.get_simfin_balance_sheet,
+                # toolkit.get_simfin_cashflow,
+                # toolkit.get_simfin_income_stmt,
+                tushare_mcp.get_tools(),
             ]
 
         system_message = (
-            "You are a researcher tasked with analyzing fundamental information over the past week about a company. Please write a comprehensive report of the company's fundamental information such as financial documents, company profile, basic company financials, company financial history, insider sentiment and insider transactions to gain a full view of the company's fundamental information to inform traders. Make sure to include as much detail as possible. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
-            + " Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read.",
+            "您是一位研究员,负责分析过去一周某公司的基本面信息。请撰写一份全面的公司基本面信息报告,包括财务文件、公司简介、基本财务数据、公司财务历史、内部人士情绪和内部交易等,以全面了解公司的基本面信息,为交易者提供参考。请务必尽可能详细。不要简单地说趋势好坏参半,而是要提供详细和细致的分析见解,帮助交易者做出决策。"
+            + " 请在报告末尾附上一个 Markdown 表格,以组织和整理报告中的要点,使其易于阅读。"
+            + " 请用中文回复。",
         )
 
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
                     "system",
-                    "You are a helpful AI assistant, collaborating with other assistants."
-                    " Use the provided tools to progress towards answering the question."
-                    " If you are unable to fully answer, that's OK; another assistant with different tools"
-                    " will help where you left off. Execute what you can to make progress."
-                    " If you or any other assistant has the FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** or deliverable,"
-                    " prefix your response with FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL** so the team knows to stop."
-                    " You have access to the following tools: {tool_names}.\n{system_message}"
-                    "For your reference, the current date is {current_date}. The company we want to look at is {ticker}",
+                    "您是一个乐于助人的AI助手,正在与其他助手合作。"
+                    "请使用提供的工具来推进问题的解答。"
+                    "如果您无法完全回答,没关系;另一个拥有不同工具的助手会接手您未完成的部分。请尽可能执行您能做的工作以取得进展。"
+                    "如果您或其他任何助手有最终交易建议: **买入/持有/卖出**或可交付成果,"
+                    "请在回复前加上'最终交易建议: **买入/持有/卖出**',以便团队知道可以停止。"
+                    "您可以使用以下工具: {tool_names}。\n{system_message}"
+                    "供您参考,当前日期是 {current_date}。我们要分析的公司是 {ticker}",
                 ),
                 MessagesPlaceholder(variable_name="messages"),
             ]

@@ -8,11 +8,15 @@ from datetime import date, timedelta, datetime
 import functools
 import pandas as pd
 import os
+import logging
 from dateutil.relativedelta import relativedelta
 from langchain_openai import ChatOpenAI
 import tradingagents.dataflows.interface as interface
 from tradingagents.default_config import DEFAULT_CONFIG
 from langchain_core.messages import HumanMessage
+
+# 设置日志
+logger = logging.getLogger(__name__)
 
 
 def create_msg_delete():
@@ -47,6 +51,90 @@ class Toolkit:
     def __init__(self, config=None):
         if config:
             self.update_config(config)
+        # 初始化MCP工具
+        self._mcp_tools = None
+        self._load_mcp_tools()
+
+    def _load_mcp_tools(self):
+        """加载MCP工具"""
+        try:
+            from .tushare_tools import get_all_mcp_tools
+            if self.config.get("use_mcp_server", False):
+                self._mcp_tools = get_all_mcp_tools(self.config)
+                logger.info(f"成功加载 {len(self._mcp_tools)} 个MCP工具")
+            else:
+                self._mcp_tools = []
+                logger.info("MCP服务器已禁用")
+        except ImportError as e:
+            logger.warning(f"无法加载MCP工具: {e}")
+            self._mcp_tools = []
+        except Exception as e:
+            logger.error(f"MCP工具加载失败: {e}")
+            self._mcp_tools = []
+
+    @property
+    def mcp_tools(self):
+        """获取MCP工具列表"""
+        return self._mcp_tools or []
+
+    def get_all_tools(self):
+        """获取所有工具，包括传统工具和MCP工具"""
+        traditional_tools = [
+            # 离线工具
+            self.get_YFin_data,
+            self.get_stockstats_indicators_report,
+            self.get_reddit_stock_info,
+            self.get_finnhub_news,
+            self.get_reddit_news,
+            self.get_finnhub_company_insider_sentiment,
+            self.get_finnhub_company_insider_transactions,
+            self.get_simfin_balance_sheet,
+            self.get_simfin_cashflow,
+            self.get_simfin_income_stmt,
+            self.get_google_news,
+        ]
+        
+        if self.config.get("online_tools", False):
+            traditional_tools.extend([
+                # 在线工具
+                self.get_YFin_data_online,
+                self.get_stockstats_indicators_report_online,
+                self.get_stock_news_openai,
+                self.get_global_news_openai,
+                self.get_fundamentals_openai,
+            ])
+        
+        # 添加MCP工具
+        all_tools = traditional_tools + self.mcp_tools
+        return all_tools
+
+    def get_tools_by_category(self, category: str):
+        """根据分类获取工具"""
+        if category == "mcp":
+            return self.mcp_tools
+        elif category == "market":
+            tools = [self.get_YFin_data, self.get_stockstats_indicators_report]
+            if self.config.get("online_tools", False):
+                tools.extend([self.get_YFin_data_online, self.get_stockstats_indicators_report_online])
+            return tools + [tool for tool in self.mcp_tools if "stock_data" in tool.name or "index_data" in tool.name]
+        elif category == "news":
+            tools = [self.get_finnhub_news, self.get_reddit_news, self.get_google_news, self.get_reddit_stock_info]
+            if self.config.get("online_tools", False):
+                tools.extend([self.get_stock_news_openai, self.get_global_news_openai])
+            return tools
+        elif category == "fundamentals":
+            tools = [
+                self.get_finnhub_company_insider_sentiment,
+                self.get_finnhub_company_insider_transactions,
+                self.get_simfin_balance_sheet,
+                self.get_simfin_cashflow,
+                self.get_simfin_income_stmt,
+            ]
+            if self.config.get("online_tools", False):
+                tools.append(self.get_fundamentals_openai)
+            return tools + [tool for tool in self.mcp_tools if "financial_data" in tool.name]
+        else:
+            return self.get_all_tools()
 
     @staticmethod
     @tool
