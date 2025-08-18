@@ -1,4 +1,4 @@
-from .utils.agent_utils import Toolkit, create_msg_delete
+from .utils.agent_utils import create_msg_delete
 from .utils.agent_states import AgentState, InvestDebateState, RiskDebateState
 from .utils.memory import FinancialSituationMemory
 
@@ -18,10 +18,10 @@ from .managers.research_manager import create_research_manager
 from .managers.risk_manager import create_risk_manager
 
 from .trader.trader import create_trader
+from .history.history_analyst import create_history_analyst
 
 __all__ = [
     "FinancialSituationMemory",
-    "Toolkit",
     "AgentState",
     "create_msg_delete",
     "InvestDebateState",
@@ -38,4 +38,5 @@ __all__ = [
     "create_safe_debator",
     "create_social_media_analyst",
     "create_trader",
+    "create_history_analyst",
 ]

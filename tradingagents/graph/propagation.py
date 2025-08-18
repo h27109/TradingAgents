@@ -22,6 +22,7 @@ class Propagator:
         return {
             "messages": [("human", company_name)],
             "company_of_interest": company_name,
+            "company_name": company_name,
             "trade_date": str(trade_date),
             "investment_debate_state": InvestDebateState(
                 {"history": "", "current_response": "", "count": 0}
@@ -39,6 +40,7 @@ class Propagator:
             "fundamentals_report": "",
             "sentiment_report": "",
             "news_report": "",
+            "history_analysis_report": "",
         }
 
     def get_graph_args(self) -> Dict[str, Any]:

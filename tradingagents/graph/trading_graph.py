@@ -9,19 +9,20 @@ from typing import Dict, Any, Tuple, List, Optional
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_tavily import TavilySearch
+from tradingagents.agents.utils.tushare import TushareMcpServer
+from tradingagents.agents.utils.jin10 import Jin10McpServer
 
 from langgraph.prebuilt import ToolNode
 
 from tradingagents.agents import *
-from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.config import get_config
 from tradingagents.agents.utils.memory import FinancialSituationMemory
 from tradingagents.agents.utils.agent_states import (
     AgentState,
     InvestDebateState,
     RiskDebateState,
 )
-from tradingagents.dataflows.interface import set_config
-
 from .conditional_logic import ConditionalLogic
 from .setup import GraphSetup
 from .propagation import Propagator
@@ -46,31 +47,37 @@ class TradingAgentsGraph:
             config: Configuration dictionary. If None, uses default config
         """
         self.debug = debug
-        self.config = config or DEFAULT_CONFIG
-
-        # Update the interface's config
-        set_config(self.config)
+        self.config = config or get_config().to_dict()
+        self.selected_analysts = selected_analysts
 
         # Create necessary directories
+        project_dir = self.config.get("project_dir")
         os.makedirs(
-            os.path.join(self.config["project_dir"], "dataflows/data_cache"),
+            os.path.join(project_dir, "dataflows/data_cache"),
             exist_ok=True,
         )
 
         # Initialize LLMs
-        if self.config["llm_provider"].lower() == "openai" or self.config["llm_provider"] == "ollama" or self.config["llm_provider"] == "openrouter" or self.config["llm_provider"] == "deepseek":
-            self.deep_thinking_llm = ChatOpenAI(model=self.config["deep_think_llm"], base_url=self.config["backend_url"])
-            self.quick_thinking_llm = ChatOpenAI(model=self.config["quick_think_llm"], base_url=self.config["backend_url"])
-        elif self.config["llm_provider"].lower() == "anthropic":
-            self.deep_thinking_llm = ChatAnthropic(model=self.config["deep_think_llm"], base_url=self.config["backend_url"])
-            self.quick_thinking_llm = ChatAnthropic(model=self.config["quick_think_llm"], base_url=self.config["backend_url"])
-        elif self.config["llm_provider"].lower() == "google":
-            self.deep_thinking_llm = ChatGoogleGenerativeAI(model=self.config["deep_think_llm"])
-            self.quick_thinking_llm = ChatGoogleGenerativeAI(model=self.config["quick_think_llm"])
+        llm_provider = self.config.get("llm_provider", "openai").lower()
+        if llm_provider in ["openai", "ollama", "openrouter", "deepseek"]:
+            self.deep_thinking_llm = ChatOpenAI(model=self.config.get("deep_think_llm"), 
+                                                base_url=self.config.get("llm_api_url"),
+                                                api_key = self.config.get("llm_api_key"))
+            self.quick_thinking_llm = ChatOpenAI(model=self.config.get("quick_think_llm"), 
+                                                base_url=self.config.get("llm_api_url"),
+                                                api_key = self.config.get("llm_api_key"))
+        elif llm_provider == "anthropic":
+            self.deep_thinking_llm = ChatAnthropic(model=self.config.get("deep_think_llm"), base_url=self.config.get("backend_url"))
+            self.quick_thinking_llm = ChatAnthropic(model=self.config.get("quick_think_llm"), base_url=self.config.get("backend_url"))
+        elif llm_provider == "google":
+            self.deep_thinking_llm = ChatGoogleGenerativeAI(model=self.config.get("deep_think_llm"))
+            self.quick_thinking_llm = ChatGoogleGenerativeAI(model=self.config.get("quick_think_llm"))
         else:
-            raise ValueError(f"Unsupported LLM provider: {self.config['llm_provider']}")
+            raise ValueError(f"Unsupported LLM provider: {llm_provider}")
         
-        self.toolkit = Toolkit(config=self.config)
+        self.tushare_mcp_server = TushareMcpServer()
+        self.jin10_mcp_server = Jin10McpServer()
+        self.search_tool = TavilySearch()
 
         # Initialize memories
         self.bull_memory = FinancialSituationMemory("bull_memory", self.config)
@@ -79,22 +86,21 @@ class TradingAgentsGraph:
         self.invest_judge_memory = FinancialSituationMemory("invest_judge_memory", self.config)
         self.risk_manager_memory = FinancialSituationMemory("risk_manager_memory", self.config)
 
-        # Create tool nodes
-        self.tool_nodes = self._create_tool_nodes()
-
         # Initialize components
         self.conditional_logic = ConditionalLogic()
         self.graph_setup = GraphSetup(
             self.quick_thinking_llm,
             self.deep_thinking_llm,
-            self.toolkit,
-            self.tool_nodes,
             self.bull_memory,
             self.bear_memory,
             self.trader_memory,
             self.invest_judge_memory,
             self.risk_manager_memory,
             self.conditional_logic,
+            self.tushare_mcp_server,
+            self.jin10_mcp_server,
+            self.search_tool,
+            self.config,
         )
 
         self.propagator = Propagator()
@@ -106,56 +112,30 @@ class TradingAgentsGraph:
         self.ticker = None
         self.log_states_dict = {}  # date to full state dict
 
-        # Set up the graph
-        self.graph = self.graph_setup.setup_graph(selected_analysts)
+        # Initialize graph as None, will be set up in async_init
+        self.graph = None
 
-    def _create_tool_nodes(self) -> Dict[str, ToolNode]:
+    async def async_init(self):
+        """Async initialization method to set up the graph."""
+        if self.graph is None:
+            # Set up the graph
+            self.graph = await self.graph_setup.setup_graph(self.selected_analysts)
+
+    async def _create_tool_nodes(self) -> Dict[str, ToolNode]:
         """Create tool nodes for different data sources."""
-        return {
-            "market": ToolNode(
-                [
-                    # online tools
-                    self.toolkit.get_YFin_data_online,
-                    self.toolkit.get_stockstats_indicators_report_online,
-                    # offline tools
-                    self.toolkit.get_YFin_data,
-                    self.toolkit.get_stockstats_indicators_report,
-                ]
-            ),
-            "social": ToolNode(
-                [
-                    # online tools
-                    self.toolkit.get_stock_news_openai,
-                    # offline tools
-                    self.toolkit.get_reddit_stock_info,
-                ]
-            ),
-            "news": ToolNode(
-                [
-                    # online tools
-                    self.toolkit.get_global_news_openai,
-                    self.toolkit.get_google_news,
-                    # offline tools
-                    self.toolkit.get_finnhub_news,
-                    self.toolkit.get_reddit_news,
-                ]
-            ),
-            "fundamentals": ToolNode(
-                [
-                    # online tools
-                    self.toolkit.get_fundamentals_openai,
-                    # offline tools
-                    self.toolkit.get_finnhub_company_insider_sentiment,
-                    self.toolkit.get_finnhub_company_insider_transactions,
-                    self.toolkit.get_simfin_balance_sheet,
-                    self.toolkit.get_simfin_cashflow,
-                    self.toolkit.get_simfin_income_stmt,
-                ]
-            ),
-        }
+        tool_nodes = {}
+        
+        for source in ["market", "social", "news", "fundamentals"]:
+            try:
+                tools = await self.mcp_server.market_client.get_tools()
+                tool_nodes[source] = ToolNode(tools)
+            except Exception as e:
+                raise RuntimeError(f"{source} MCP工具获取失败: {e}") from e
+        
+        return tool_nodes
 
-    def propagate(self, company_name, trade_date):
-        """Run the trading agents graph for a company on a specific date."""
+    async def propagate(self, company_name, trade_date, stream_output=True):
+        """Run the trading agents graph for a company on a specific date with optional streaming output."""
 
         self.ticker = company_name
 
@@ -165,31 +145,142 @@ class TradingAgentsGraph:
         )
         args = self.propagator.get_graph_args()
 
-        if self.debug:
-            # Debug mode with tracing
+        if stream_output:
+            # Streaming mode with real-time output
+            print(f"\n🚀 开始分析 {company_name} 在 {trade_date} 的交易决策...")
+            print("=" * 80)
+            
             trace = []
-            for chunk in self.graph.stream(init_agent_state, **args):
-                if len(chunk["messages"]) == 0:
-                    pass
-                else:
-                    chunk["messages"][-1].pretty_print()
+            step_count = 0
+            tool_usage = {}  # 记录工具使用统计
+            
+            async for chunk in self.graph.astream(init_agent_state, **args):
+                step_count += 1
+                
+                if len(chunk["messages"]) > 0:
+                    latest_message = chunk["messages"][-1]
+                    
+                    # 检查是否是工具调用
+                    if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
+                        print(f"\n🔧 工具调用 (步骤 {step_count}):")
+                        print("-" * 40)
+                        
+                        for tool_call in latest_message.tool_calls:
+                            tool_name = tool_call.get('name', '未知工具')
+                            tool_args = tool_call.get('args', {})
+                            tool_id = tool_call.get('id', '未知ID')
+                            
+                            # 记录工具使用统计
+                            if tool_name not in tool_usage:
+                                tool_usage[tool_name] = 0
+                            tool_usage[tool_name] += 1
+                            
+                            print(f"🛠️  工具名称: {tool_name}")
+                            print(f"📝 工具ID: {tool_id}")
+                            print(f"📋 参数:")
+                            for key, value in tool_args.items():
+                                # 格式化参数显示
+                                if isinstance(value, str) and len(value) > 100:
+                                    print(f"   {key}: {value[:100]}...")
+                                else:
+                                    print(f"   {key}: {value}")
+                            print("-" * 20)
+                    
+                    # 检查是否有工具响应
+                    if hasattr(latest_message, 'tool_call_id') and latest_message.tool_call_id:
+                        print(f"📤 工具响应:")
+                        print(f"   ID: {latest_message.tool_call_id}")
+                        if hasattr(latest_message, 'content') and latest_message.content:
+                            content = latest_message.content
+                            # 格式化响应内容显示
+                            if len(content) > 500:
+                                print(f"   响应内容: {content[:250]}...")
+                                print(f"   ... (内容过长，已截断)")
+                            else:
+                                print(f"   响应内容: {content}")
+                        print("-" * 20)
+                    
+                    # 检查消息类型并输出相应的信息
+                    if hasattr(latest_message, 'content') and latest_message.content and not hasattr(latest_message, 'tool_call_id'):
+                        # 根据消息来源输出不同的标识
+                        if "market_report" in chunk:
+                            print(f"\n📊 市场分析师报告 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
+                        elif "sentiment_report" in chunk:
+                            print(f"\n💬 社交媒体分析师报告 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
+                        elif "news_report" in chunk:
+                            print(f"\n📰 新闻分析师报告 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
+                        elif "fundamentals_report" in chunk:
+                            print(f"\n📈 基本面分析师报告 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
+                        elif "investment_debate_state" in chunk:
+                            print(f"\n🤝 投资辩论 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
+                        elif "trader_investment_plan" in chunk:
+                            print(f"\n💼 交易员投资计划 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
+                        elif "risk_debate_state" in chunk:
+                            print(f"\n⚠️  风险管理讨论 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
+                        elif "final_trade_decision" in chunk:
+                            print(f"\n🎯 最终交易决策 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content)
+                            print("=" * 80)
+                        else:
+                            print(f"\n🔄 处理中 (步骤 {step_count}):")
+                            print("-" * 40)
+                            print(latest_message.content[:100] + "..." if len(latest_message.content) > 100 else latest_message.content)
+                    
                     trace.append(chunk)
-
+            
             final_state = trace[-1]
+            print(f"\n✅ 分析完成！共执行了 {step_count} 个步骤。")
+            
+            # 显示工具使用统计
+            if tool_usage:
+                print(f"\n📊 工具使用统计:")
+                print("-" * 40)
+                for tool_name, count in tool_usage.items():
+                    print(f"   {tool_name}: {count} 次")
+                print("-" * 40)
+            
         else:
-            # Standard mode without tracing
-            final_state = self.graph.invoke(init_agent_state, **args)
+            # Standard mode without streaming
+            if self.debug:
+                # Debug mode with tracing
+                trace = []
+                async for chunk in self.graph.astream(init_agent_state, **args):
+                    if len(chunk["messages"]) == 0:
+                        pass
+                    else:
+                        chunk["messages"][-1].pretty_print()
+                        trace.append(chunk)
+
+                final_state = trace[-1]
+            else:
+                # Standard mode without tracing
+                final_state = await self.graph.ainvoke(init_agent_state, **args)
 
         # Store current state for reflection
         self.curr_state = final_state
 
         # Log state
-        self._log_state(trade_date, final_state)
+        await self._log_state(trade_date, final_state)
 
         # Return decision and processed signal
-        return final_state, self.process_signal(final_state["final_trade_decision"])
+        return final_state, await self.process_signal(final_state["final_trade_decision"])
 
-    def _log_state(self, trade_date, final_state):
+    async def _log_state(self, trade_date, final_state):
         """Log the final state to a JSON file."""
         self.log_states_dict[str(trade_date)] = {
             "company_of_interest": final_state["company_of_interest"],
@@ -231,7 +322,7 @@ class TradingAgentsGraph:
         ) as f:
             json.dump(self.log_states_dict, f, indent=4)
 
-    def reflect_and_remember(self, returns_losses):
+    async def reflect_and_remember(self, returns_losses):
         """Reflect on decisions and update memory based on returns."""
         self.reflector.reflect_bull_researcher(
             self.curr_state, returns_losses, self.bull_memory
@@ -249,6 +340,6 @@ class TradingAgentsGraph:
             self.curr_state, returns_losses, self.risk_manager_memory
         )
 
-    def process_signal(self, full_signal):
-        """Process a signal to extract the core decision."""
-        return self.signal_processor.process_signal(full_signal)
+    async def process_signal(self, full_signal):
+        """Process the final trade decision into a signal."""
+        return await self.signal_processor.process_signal(full_signal)

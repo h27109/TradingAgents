@@ -112,17 +112,37 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-### Required APIs
+### Configuration
 
-You will also need the FinnHub API for financial data. All of our code is implemented with the free tier.
+1. **Copy the environment template:**
 ```bash
-export FINNHUB_API_KEY=$YOUR_FINNHUB_API_KEY
+cp .env.example .env
 ```
 
-You will need the OpenAI API for all the agents.
+2. **Edit the `.env` file** with your API keys and preferences:
 ```bash
-export OPENAI_API_KEY=$YOUR_OPENAI_API_KEY
+# Required API Keys
+LLM_API_KEY=your_llm_api_key_here
+EMBEDDING_API_KEY=your_embedding_api_key_here
+
+# Optional API Keys (for enhanced features)
+TAVILY_API_KEY=your_tavily_api_key_here
+FINNHUB_API_KEY=your_finnhub_api_key_here
+REDDIT_CLIENT_ID=your_reddit_client_id_here
+REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
 ```
+
+3. **Supported LLM Providers:**
+   - **OpenAI**: `LLM_PROVIDER=openai`
+   - **Anthropic**: `LLM_PROVIDER=anthropic`
+   - **Google**: `LLM_PROVIDER=google`
+   - **Ollama**: `LLM_PROVIDER=ollama`
+   - **OpenRouter**: `LLM_PROVIDER=openrouter`
+   - **DeepSeek**: `LLM_PROVIDER=deepseek`
+
+4. **Example configurations** for different providers are included in `.env.example`.
+
+> **Note**: The framework requires at least `LLM_API_KEY` and `EMBEDDING_API_KEY` to function. Other API keys are optional but enable additional features like real-time data fetching and social media analysis.
 
 ### CLI Usage
 
@@ -158,23 +178,25 @@ To use TradingAgents inside your code, you can import the `tradingagents` module
 
 ```python
 from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.config import get_config
 
-ta = TradingAgentsGraph(debug=True, config=DEFAULT_CONFIG.copy())
+# Get configuration from environment variables
+config = get_config().to_dict()
+ta = TradingAgentsGraph(debug=True, config=config)
 
 # forward propagate
 _, decision = ta.propagate("NVDA", "2024-05-10")
 print(decision)
 ```
 
-You can also adjust the default configuration to set your own choice of LLMs, debate rounds, etc.
+You can also adjust the configuration programmatically:
 
 ```python
 from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.config import get_config
 
-# Create a custom config
-config = DEFAULT_CONFIG.copy()
+# Get base configuration and customize it
+config = get_config().to_dict()
 config["deep_think_llm"] = "gpt-4.1-nano"  # Use a different model
 config["quick_think_llm"] = "gpt-4.1-nano"  # Use a different model
 config["max_debate_rounds"] = 1  # Increase debate rounds
@@ -190,7 +212,7 @@ print(decision)
 
 > For `online_tools`, we recommend enabling them for experimentation, as they provide access to real-time data. The agents' offline tools rely on cached data from our **Tauric TradingDB**, a curated dataset we use for backtesting. We're currently in the process of refining this dataset, and we plan to release it soon alongside our upcoming projects. Stay tuned!
 
-You can view the full list of configurations in `tradingagents/default_config.py`.
+You can view the full list of configurations in `.env.example` and `tradingagents/config.py`.
 
 ## Contributing
 

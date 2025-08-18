@@ -3,8 +3,8 @@ import time
 import json
 
 
-def create_bear_researcher(llm, memory):
-    def bear_node(state) -> dict:
+async def create_bear_researcher(llm, memory):
+    async def bear_node(state) -> dict:
         investment_debate_state = state["investment_debate_state"]
         history = investment_debate_state.get("history", "")
         bear_history = investment_debate_state.get("bear_history", "")
@@ -16,33 +16,36 @@ def create_bear_researcher(llm, memory):
         fundamentals_report = state["fundamentals_report"]
 
         curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
-        past_memories = memory.get_memories(curr_situation, n_matches=2)
+        past_memories = await memory.get_memories(curr_situation, n_matches=2)
 
         past_memory_str = ""
         for i, rec in enumerate(past_memories, 1):
             past_memory_str += rec["recommendation"] + "\n\n"
 
-        prompt = f"""您是一位空头分析师,负责对投资该股票持反对意见。您的目标是提出一个论证充分的论点,强调风险、挑战和负面指标。利用提供的研究和数据来突出潜在的下行风险,并有效反驳多头论点。
+        prompt = f"""
+        您是一位空头分析师,负责对投资该股票持反对意见。
+        您的目标是提出一个论证充分的论点,强调风险、挑战和负面指标。利用提供的研究和数据来突出潜在的下行风险,并有效反驳多头论点。
 
-需要关注的要点:
+        需要关注的要点:
 
-- 风险与挑战: 突出可能阻碍股票表现的因素,如市场饱和、财务不稳定或宏观经济威胁。
-- 竞争劣势: 强调弱点,如市场定位较弱、创新能力下降或来自竞争对手的威胁。
-- 负面指标: 使用财务数据、市场趋势或最新不利新闻来支持您的立场。
-- 多头观点反驳: 用具体数据和合理推理批判性地分析多头论点,揭示其中的弱点或过于乐观的假设。
-- 互动参与: 以对话方式呈现您的论点,直接回应多头分析师的观点并进行有效辩论,而不是简单罗列事实。
+        - 风险与挑战: 突出可能阻碍股票表现的因素,如市场饱和、财务不稳定或宏观经济威胁。
+        - 竞争劣势: 强调弱点,如市场定位较弱、创新能力下降或来自竞争对手的威胁。
+        - 负面指标: 使用财务数据、市场趋势或最新不利新闻来支持您的立场。
+        - 多头观点反驳: 用具体数据和合理推理批判性地分析多头论点,揭示其中的弱点或过于乐观的假设。
+        - 互动参与: 以对话方式呈现您的论点,直接回应多头分析师的观点并进行有效辩论,而不是简单罗列事实。
 
-可用资源:
+        可用资源:
 
-市场研究报告: {market_research_report}
-社交媒体情绪报告: {sentiment_report}
-最新世界事务新闻: {news_report}
-公司基本面报告: {fundamentals_report}
-辩论的对话历史: {history}
-最新多头论点: {current_response}
-类似情况的反思和经验教训: {past_memory_str}
-请利用这些信息提出一个有说服力的空头论点,反驳多头的主张,并进行动态辩论,展示投资该股票的风险和弱点。您还必须回应反思,并从过去的教训和错误中吸取经验。
-"""
+        市场研究报告: {market_research_report}
+        社交媒体情绪报告: {sentiment_report}    
+        最新世界事务新闻: {news_report}
+        公司基本面报告: {fundamentals_report}
+        辩论的对话历史: {history}
+        最新多头论点: {current_response}
+        类似情况的反思和经验教训: {past_memory_str}
+        请利用这些信息提出一个有说服力的空头论点,反驳多头的主张,并进行动态辩论,展示投资该股票的风险和弱点。
+        您还必须回应反思,并从过去的教训和错误中吸取经验。
+        """
 
         response = llm.invoke(prompt)
 

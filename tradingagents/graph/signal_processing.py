@@ -10,7 +10,7 @@ class SignalProcessor:
         """Initialize with an LLM for processing."""
         self.quick_thinking_llm = quick_thinking_llm
 
-    def process_signal(self, full_signal: str) -> str:
+    async def process_signal(self, full_signal: str) -> str:
         """
         Process a full trading signal to extract the core decision.
 
@@ -28,4 +28,5 @@ class SignalProcessor:
             ("human", full_signal),
         ]
 
-        return self.quick_thinking_llm.invoke(messages).content
+        result = await self.quick_thinking_llm.ainvoke(messages)
+        return result.content

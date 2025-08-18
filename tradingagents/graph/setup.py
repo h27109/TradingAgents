@@ -1,13 +1,17 @@
 # TradingAgents/graph/setup.py
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph, START
 from langgraph.prebuilt import ToolNode
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_tavily import TavilySearch
 
 from tradingagents.agents import *
 from tradingagents.agents.utils.agent_states import AgentState
-from tradingagents.agents.utils.agent_utils import Toolkit
+from tradingagents.agents.utils.agent_utils import create_msg_delete
+from tradingagents.agents.utils.tushare import TushareMcpServer
+from tradingagents.agents.utils.jin10 import Jin10McpServer
 
 from .conditional_logic import ConditionalLogic
 
@@ -19,28 +23,32 @@ class GraphSetup:
         self,
         quick_thinking_llm: ChatOpenAI,
         deep_thinking_llm: ChatOpenAI,
-        toolkit: Toolkit,
-        tool_nodes: Dict[str, ToolNode],
         bull_memory,
         bear_memory,
         trader_memory,
         invest_judge_memory,
         risk_manager_memory,
         conditional_logic: ConditionalLogic,
+        tushare_mcp_server: TushareMcpServer,
+        jin10_mcp_server: Jin10McpServer,
+        search_tool: TavilySearch,
+        config: Dict[str, Any],
     ):
         """Initialize with required components."""
         self.quick_thinking_llm = quick_thinking_llm
         self.deep_thinking_llm = deep_thinking_llm
-        self.toolkit = toolkit
-        self.tool_nodes = tool_nodes
         self.bull_memory = bull_memory
         self.bear_memory = bear_memory
         self.trader_memory = trader_memory
         self.invest_judge_memory = invest_judge_memory
         self.risk_manager_memory = risk_manager_memory
         self.conditional_logic = conditional_logic
+        self.tushare_mcp_server = tushare_mcp_server
+        self.jin10_mcp_server = jin10_mcp_server
+        self.search_tool = search_tool
+        self.config = config
 
-    def setup_graph(
+    async def setup_graph(
         self, selected_analysts=["market", "social", "news", "fundamentals"]
     ):
         """Set up and compile the agent workflow graph.
@@ -54,6 +62,13 @@ class GraphSetup:
         """
         if len(selected_analysts) == 0:
             raise ValueError("Trading Agents Graph Setup Error: no analysts selected!")
+        
+        # MCP初始化失败时直接报错并退出
+        try:
+            await self.tushare_mcp_server.init_all_client()
+            await self.jin10_mcp_server.init_all_client()
+        except Exception as e:
+            raise RuntimeError(f"MCP服务器初始化失败，无法继续执行。错误详情: {type(e).__name__}: {e}") from e
 
         # Create analyst nodes
         analyst_nodes = {}
@@ -61,50 +76,56 @@ class GraphSetup:
         tool_nodes = {}
 
         if "market" in selected_analysts:
-            analyst_nodes["market"] = create_market_analyst(
-                self.quick_thinking_llm, self.toolkit
+            analyst_nodes["market"] = await create_market_analyst(
+                self.quick_thinking_llm, self.tushare_mcp_server.market_client, self.search_tool
             )
-            delete_nodes["market"] = create_msg_delete()
-            tool_nodes["market"] = self.tool_nodes["market"]
+            delete_nodes["market"] = await create_msg_delete()
+            tools = await self.tushare_mcp_server.market_client.get_tools() + [self.search_tool]
+            tool_nodes["market"] = ToolNode(tools)
 
         if "social" in selected_analysts:
-            analyst_nodes["social"] = create_social_media_analyst(
-                self.quick_thinking_llm, self.toolkit
+            analyst_nodes["social"] = await create_social_media_analyst(
+                self.quick_thinking_llm, self.tushare_mcp_server.social_client, self.search_tool
             )
-            delete_nodes["social"] = create_msg_delete()
-            tool_nodes["social"] = self.tool_nodes["social"]
+            delete_nodes["social"] = await create_msg_delete()
+            tools = await self.tushare_mcp_server.social_client.get_tools() + [self.search_tool]
+            tool_nodes["social"] = ToolNode(tools)
 
         if "news" in selected_analysts:
-            analyst_nodes["news"] = create_news_analyst(
-                self.quick_thinking_llm, self.toolkit
+            analyst_nodes["news"] = await create_news_analyst(
+                self.quick_thinking_llm, self.jin10_mcp_server.jin10_client, self.search_tool
             )
-            delete_nodes["news"] = create_msg_delete()
-            tool_nodes["news"] = self.tool_nodes["news"]
+            delete_nodes["news"] = await create_msg_delete()
+            tools = await self.jin10_mcp_server.jin10_client.get_tools() + [self.search_tool]
+            tool_nodes["news"] = ToolNode(tools)
 
         if "fundamentals" in selected_analysts:
-            analyst_nodes["fundamentals"] = create_fundamentals_analyst(
-                self.quick_thinking_llm, self.toolkit
+            analyst_nodes["fundamentals"] = await create_fundamentals_analyst(
+                self.quick_thinking_llm, self.tushare_mcp_server.financial_client, self.search_tool
             )
-            delete_nodes["fundamentals"] = create_msg_delete()
-            tool_nodes["fundamentals"] = self.tool_nodes["fundamentals"]
+            delete_nodes["fundamentals"] = await create_msg_delete()
+            tools = await self.tushare_mcp_server.financial_client.get_tools() + [self.search_tool]
+            tool_nodes["fundamentals"] = ToolNode(tools)
 
         # Create researcher and manager nodes
-        bull_researcher_node = create_bull_researcher(
+        bull_researcher_node = await create_bull_researcher(
             self.quick_thinking_llm, self.bull_memory
         )
-        bear_researcher_node = create_bear_researcher(
+        bear_researcher_node = await create_bear_researcher(
             self.quick_thinking_llm, self.bear_memory
         )
-        research_manager_node = create_research_manager(
+        research_manager_node = await create_research_manager(
             self.deep_thinking_llm, self.invest_judge_memory
         )
-        trader_node = create_trader(self.quick_thinking_llm, self.trader_memory)
+        # History analyst: 回顾近10天历史分析
+        history_analyst_node = await create_history_analyst(self.quick_thinking_llm, self.config)
+        trader_node = await create_trader(self.quick_thinking_llm, self.trader_memory)
 
         # Create risk analysis nodes
-        risky_analyst = create_risky_debator(self.quick_thinking_llm)
-        neutral_analyst = create_neutral_debator(self.quick_thinking_llm)
-        safe_analyst = create_safe_debator(self.quick_thinking_llm)
-        risk_manager_node = create_risk_manager(
+        risky_analyst = await create_risky_debator(self.quick_thinking_llm)
+        neutral_analyst = await create_neutral_debator(self.quick_thinking_llm)
+        safe_analyst = await create_safe_debator(self.quick_thinking_llm)
+        risk_manager_node = await create_risk_manager(
             self.deep_thinking_llm, self.risk_manager_memory
         )
 
@@ -123,6 +144,7 @@ class GraphSetup:
         workflow.add_node("Bull Researcher", bull_researcher_node)
         workflow.add_node("Bear Researcher", bear_researcher_node)
         workflow.add_node("Research Manager", research_manager_node)
+        workflow.add_node("History Analyst", history_analyst_node)
         workflow.add_node("Trader", trader_node)
         workflow.add_node("Risky Analyst", risky_analyst)
         workflow.add_node("Neutral Analyst", neutral_analyst)
@@ -172,7 +194,9 @@ class GraphSetup:
                 "Research Manager": "Research Manager",
             },
         )
-        workflow.add_edge("Research Manager", "Trader")
+        # 在交易员前插入历史分析
+        workflow.add_edge("Research Manager", "History Analyst")
+        workflow.add_edge("History Analyst", "Trader")
         workflow.add_edge("Trader", "Risky Analyst")
         workflow.add_conditional_edges(
             "Risky Analyst",
@@ -202,4 +226,8 @@ class GraphSetup:
         workflow.add_edge("Risk Judge", END)
 
         # Compile and return
-        return workflow.compile()
+        app = workflow.compile()
+
+        app.get_graph().draw_mermaid_png(output_file_path="graph.png")
+        
+        return app
