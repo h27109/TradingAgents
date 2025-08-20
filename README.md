@@ -61,7 +61,7 @@ Our framework decomposes complex trading tasks into specialized roles. This ensu
 
 ### Analyst Team
 - Fundamentals Analyst: Evaluates company financials and performance metrics, identifying intrinsic values and potential red flags.
-- Sentiment Analyst: Analyzes social media and public sentiment using sentiment scoring algorithms to gauge short-term market mood.
+- Marco Data Analyst: Analyzes marco data and public sentiment using sentiment scoring algorithms to gauge short-term market mood.
 - News Analyst: Monitors global news and macroeconomic indicators, interpreting the impact of events on market conditions.
 - Technical Analyst: Utilizes technical indicators (like MACD and RSI) to detect trading patterns and forecast price movements.
 
@@ -142,7 +142,7 @@ REDDIT_CLIENT_SECRET=your_reddit_client_secret_here
 
 4. **Example configurations** for different providers are included in `.env.example`.
 
-> **Note**: The framework requires at least `LLM_API_KEY` and `EMBEDDING_API_KEY` to function. Other API keys are optional but enable additional features like real-time data fetching and social media analysis.
+> **Note**: The framework requires at least `LLM_API_KEY` and `EMBEDDING_API_KEY` to function. Other API keys are optional but enable additional features like real-time data fetching and macro data analysis.
 
 ### CLI Usage
 

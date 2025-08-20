@@ -90,18 +90,18 @@ class GraphSetup:
 
         if "news" in selected_analysts:
             analyst_nodes["news"] = await create_news_analyst(
-                self.quick_thinking_llm, self.jin10_mcp_server.jin10_client, self.search_tool
+                self.quick_thinking_llm, self.mcp_servers.get_client("news"), self.search_tool
             )
             delete_nodes["news"] = await create_msg_delete()
-            tools = await self.jin10_mcp_server.jin10_client.get_tools() + [self.search_tool]
+            tools = await self.mcp_servers.get_client("news").get_tools() + [self.search_tool]
             tool_nodes["news"] = ToolNode(tools)
 
         if "fundamentals" in selected_analysts:
             analyst_nodes["fundamentals"] = await create_fundamentals_analyst(
-                self.quick_thinking_llm, self.tushare_mcp_server.financial_client, self.search_tool
+                self.quick_thinking_llm, self.mcp_servers.get_client("financial"), self.search_tool
             )
             delete_nodes["fundamentals"] = await create_msg_delete()
-            tools = await self.tushare_mcp_server.financial_client.get_tools() + [self.search_tool]
+            tools = await self.mcp_servers.get_client("financial").get_tools() + [self.search_tool]
             tool_nodes["fundamentals"] = ToolNode(tools)
 
         # Create researcher and manager nodes

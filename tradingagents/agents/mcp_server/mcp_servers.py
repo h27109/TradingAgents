@@ -32,5 +32,7 @@ class McpServers:
     
     def get_client(self, category: str):
         """获取指定类别的MCP客户端"""
+        if category not in self.clients:
+            raise ValueError(f"MCP客户端不存在: {category}")
         return self.clients[category]
     

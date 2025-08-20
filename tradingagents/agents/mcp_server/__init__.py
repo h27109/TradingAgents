@@ -1,3 +1,3 @@
-from .mcp_server import McpServer as Jin10McpServer
+from .mcp_servers import McpServers
 
-__all__ = ["Jin10McpServer"]
+__all__ = ["McpServers"]

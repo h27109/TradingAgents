@@ -11,7 +11,7 @@ console = Console()
 # 定义分析师顺序
 ANALYST_ORDER = [
     ("Market Analyst", AnalystType.MARKET),
-    ("Social Media Analyst", AnalystType.SOCIAL),
+    ("Macro Data Analyst", AnalystType.MACRO_DATA),
     ("News Analyst", AnalystType.NEWS),
     ("Fundamentals Analyst", AnalystType.FUNDAMENTALS),
 ]
