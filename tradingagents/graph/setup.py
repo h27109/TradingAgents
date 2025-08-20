@@ -10,8 +10,7 @@ from langchain_tavily import TavilySearch
 from tradingagents.agents import *
 from tradingagents.agents.utils.agent_states import AgentState
 from tradingagents.agents.utils.agent_utils import create_msg_delete
-from tradingagents.agents.utils.tushare import TushareMcpServer
-from tradingagents.agents.utils.jin10 import Jin10McpServer
+from tradingagents.agents.mcp_server.mcp_servers import McpServers
 
 from .conditional_logic import ConditionalLogic
 
@@ -29,8 +28,7 @@ class GraphSetup:
         invest_judge_memory,
         risk_manager_memory,
         conditional_logic: ConditionalLogic,
-        tushare_mcp_server: TushareMcpServer,
-        jin10_mcp_server: Jin10McpServer,
+        mcp_servers: McpServers,
         search_tool: TavilySearch,
         config: Dict[str, Any],
     ):
@@ -43,30 +41,29 @@ class GraphSetup:
         self.invest_judge_memory = invest_judge_memory
         self.risk_manager_memory = risk_manager_memory
         self.conditional_logic = conditional_logic
-        self.tushare_mcp_server = tushare_mcp_server
-        self.jin10_mcp_server = jin10_mcp_server
+        self.mcp_servers = mcp_servers
         self.search_tool = search_tool
         self.config = config
 
     async def setup_graph(
-        self, selected_analysts=["market", "social", "news", "fundamentals"]
+        self, selected_analysts=["market", "macro_data", "news", "fundamentals"]
     ):
         """Set up and compile the agent workflow graph.
 
         Args:
             selected_analysts (list): List of analyst types to include. Options are:
                 - "market": Market analyst
-                - "social": Social media analyst
+                - "macro_data": Macro data analyst
                 - "news": News analyst
                 - "fundamentals": Fundamentals analyst
         """
+
         if len(selected_analysts) == 0:
             raise ValueError("Trading Agents Graph Setup Error: no analysts selected!")
         
         # MCP初始化失败时直接报错并退出
         try:
-            await self.tushare_mcp_server.init_all_client()
-            await self.jin10_mcp_server.init_all_client()
+            await self.mcp_servers.init_all_client()
         except Exception as e:
             raise RuntimeError(f"MCP服务器初始化失败，无法继续执行。错误详情: {type(e).__name__}: {e}") from e
 
@@ -77,19 +74,19 @@ class GraphSetup:
 
         if "market" in selected_analysts:
             analyst_nodes["market"] = await create_market_analyst(
-                self.quick_thinking_llm, self.tushare_mcp_server.market_client, self.search_tool
+                self.quick_thinking_llm, self.mcp_servers.get_client("market"), self.search_tool
             )
             delete_nodes["market"] = await create_msg_delete()
-            tools = await self.tushare_mcp_server.market_client.get_tools() + [self.search_tool]
+            tools = await self.mcp_servers.get_client("market").get_tools() + [self.search_tool]
             tool_nodes["market"] = ToolNode(tools)
 
-        if "social" in selected_analysts:
-            analyst_nodes["social"] = await create_social_media_analyst(
-                self.quick_thinking_llm, self.tushare_mcp_server.social_client, self.search_tool
+        if "macro_data" in selected_analysts:
+            analyst_nodes["macro_data"] = await create_macro_data_analyst(
+                self.quick_thinking_llm, self.mcp_servers.get_client("macro_data"), self.search_tool
             )
-            delete_nodes["social"] = await create_msg_delete()
-            tools = await self.tushare_mcp_server.social_client.get_tools() + [self.search_tool]
-            tool_nodes["social"] = ToolNode(tools)
+            delete_nodes["macro_data"] = await create_msg_delete()
+            tools = await self.mcp_servers.get_client("macro_data").get_tools() + [self.search_tool]
+            tool_nodes["macro_data"] = ToolNode(tools)
 
         if "news" in selected_analysts:
             analyst_nodes["news"] = await create_news_analyst(

@@ -10,8 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_tavily import TavilySearch
-from tradingagents.agents.utils.tushare import TushareMcpServer
-from tradingagents.agents.utils.jin10 import Jin10McpServer
+from tradingagents.agents.mcp_server.mcp_servers import McpServers
 
 from langgraph.prebuilt import ToolNode
 
@@ -35,7 +34,7 @@ class TradingAgentsGraph:
 
     def __init__(
         self,
-        selected_analysts=["market", "social", "news", "fundamentals"],
+        selected_analysts=["market", "macro_data", "news", "fundamentals"],
         debug=False,
         config: Dict[str, Any] = None,
     ):
@@ -75,8 +74,7 @@ class TradingAgentsGraph:
         else:
             raise ValueError(f"Unsupported LLM provider: {llm_provider}")
         
-        self.tushare_mcp_server = TushareMcpServer()
-        self.jin10_mcp_server = Jin10McpServer()
+        self.mcp_servers = McpServers()
         self.search_tool = TavilySearch()
 
         # Initialize memories
@@ -97,8 +95,7 @@ class TradingAgentsGraph:
             self.invest_judge_memory,
             self.risk_manager_memory,
             self.conditional_logic,
-            self.tushare_mcp_server,
-            self.jin10_mcp_server,
+            self.mcp_servers,
             self.search_tool,
             self.config,
         )
@@ -125,9 +122,9 @@ class TradingAgentsGraph:
         """Create tool nodes for different data sources."""
         tool_nodes = {}
         
-        for source in ["market", "social", "news", "fundamentals"]:
+        for source in ["market", "macro_data", "news", "fundamentals"]:
             try:
-                tools = await self.mcp_server.market_client.get_tools()
+                tools = await self.mcp_server.get_client(source).get_tools()
                 tool_nodes[source] = ToolNode(tools)
             except Exception as e:
                 raise RuntimeError(f"{source} MCP工具获取失败: {e}") from e

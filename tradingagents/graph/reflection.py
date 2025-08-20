@@ -27,7 +27,7 @@ Your goal is to deliver detailed insights into investment decisions and highligh
      - Price movement analysis.
      - Overall market data analysis 
      - News analysis.
-     - Social media and sentiment analysis.
+     - Macro data analysis.
      - Fundamental data analysis.
      - Weight the importance of each factor in the decision-making process.
 

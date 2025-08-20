@@ -10,3 +10,8 @@ eval_data/
 .cursor
 .chainlit
 results/
+.vscode/
+.venv/
+.files/
+.cursor/
+.claude/

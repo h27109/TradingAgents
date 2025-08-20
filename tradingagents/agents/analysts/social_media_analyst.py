@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-async def create_social_media_analyst(llm, mcp_client, search_tool):
-    async def social_media_analyst_node(state):
+async def create_macro_data_analyst(llm, mcp_client, search_tool):
+    async def macro_data_analyst_node(state):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
 
@@ -58,4 +58,4 @@ async def create_social_media_analyst(llm, mcp_client, search_tool):
             "sentiment_report": report,
         }
 
-    return social_media_analyst_node
+    return macro_data_analyst_node

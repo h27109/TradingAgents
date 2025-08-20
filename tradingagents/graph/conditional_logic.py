@@ -19,13 +19,13 @@ class ConditionalLogic:
             return "tools_market"
         return "Msg Clear Market"
 
-    def should_continue_social(self, state: AgentState):
-        """Determine if social media analysis should continue."""
+    def should_continue_macro_data(self, state: AgentState):
+        """Determine if macro data analysis should continue."""
         messages = state["messages"]
         last_message = messages[-1]
         if last_message.tool_calls:
-            return "tools_social"
-        return "Msg Clear Social"
+            return "tools_macro_data"
+        return "Msg Clear Macro Data"
 
     def should_continue_news(self, state: AgentState):
         """Determine if news analysis should continue."""
