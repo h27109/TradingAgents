@@ -27,7 +27,7 @@ from .setup import GraphSetup
 from .propagation import Propagator
 from .reflection import Reflector
 from .signal_processing import SignalProcessor
-
+from tradingagents.mcp_servers_config import mcp_servers_config
 
 class TradingAgentsGraph:
     """Main class that orchestrates the trading agents framework."""
@@ -74,7 +74,7 @@ class TradingAgentsGraph:
         else:
             raise ValueError(f"Unsupported LLM provider: {llm_provider}")
         
-        self.mcp_servers = McpServers()
+        self.mcp_servers = McpServers(mcp_config=mcp_servers_config)
         self.search_tool = TavilySearch()
 
         # Initialize memories

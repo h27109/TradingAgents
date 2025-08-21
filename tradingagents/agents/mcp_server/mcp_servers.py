@@ -1,17 +1,16 @@
 import logging
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from .mcp_servers_config import mcp_servers_config
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class McpServers:
-    def __init__(self):
-        self.market_mcp_config = mcp_servers_config["market"]
-        self.news_mcp_config = mcp_servers_config["news"]
-        self.financial_mcp_config = mcp_servers_config["financial"]
-        self.macro_data_mcp_config = mcp_servers_config["macro_data"]
+    def __init__(self, mcp_config: dict):
+        self.market_mcp_config = mcp_config["market"]
+        self.news_mcp_config = mcp_config["news"]
+        self.financial_mcp_config = mcp_config["financial"]
+        self.macro_data_mcp_config = mcp_config["macro_data"]
         self.clients = {}
 
     async def init_all_client(self):
