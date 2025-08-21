@@ -68,7 +68,7 @@ async def run_async_analysis(
         # 英文段落键到中文文件名的映射
         chinese_filename_map = {
             "market_report": "市场分析.md",
-            "sentiment_report": "社交情绪.md",
+            "macro_report": "宏观数据分析.md",
             "news_report": "新闻分析.md",
             "fundamentals_report": "基本面分析.md",
             "investment_plan": "研究团队决策.md",

@@ -11,11 +11,11 @@ async def create_bear_researcher(llm, memory):
 
         current_response = investment_debate_state.get("current_response", "")
         market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
+        macro_report = state["macro_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
 
-        curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
+        curr_situation = f"{market_research_report}\n\n{macro_report}\n\n{news_report}\n\n{fundamentals_report}"
         past_memories = await memory.get_memories(curr_situation, n_matches=2)
 
         past_memory_str = ""
@@ -37,8 +37,8 @@ async def create_bear_researcher(llm, memory):
         可用资源:
 
         市场研究报告: {market_research_report}
-        社交媒体情绪报告: {sentiment_report}    
-        最新世界事务新闻: {news_report}
+        宏观数据报告: {macro_report}    
+        最新事务新闻: {news_report}
         公司基本面报告: {fundamentals_report}
         辩论的对话历史: {history}
         最新多头论点: {current_response}
@@ -57,6 +57,7 @@ async def create_bear_researcher(llm, memory):
             "bull_history": investment_debate_state.get("bull_history", ""),
             "current_response": argument,
             "count": investment_debate_state["count"] + 1,
+            "judge_decision": investment_debate_state.get("judge_decision", "")
         }
 
         return {"investment_debate_state": new_investment_debate_state}

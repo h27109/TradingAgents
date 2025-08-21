@@ -8,12 +8,12 @@ async def create_trader(llm, memory):
         company_name = state["company_of_interest"]
         investment_plan = state["investment_plan"]
         market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
+        macro_report = state["macro_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
         history_analysis_report = state.get("history_analysis_report", "")
 
-        curr_situation = f"{market_research_report}\n\n{sentiment_report}\n\n{news_report}\n\n{fundamentals_report}"
+        curr_situation = f"{market_research_report}\n\n{macro_report}\n\n{news_report}\n\n{fundamentals_report}"
         past_memories = await memory.get_memories(curr_situation, n_matches=2)
 
         past_memory_str = ""

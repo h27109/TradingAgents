@@ -13,7 +13,7 @@ async def create_safe_debator(llm):
         current_neutral_response = risk_debate_state.get("current_neutral_response", "")
 
         market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
+        macro_report = state["macro_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
 
@@ -27,8 +27,8 @@ async def create_safe_debator(llm):
                 您的任务是积极反驳激进型和中性型分析师的论点,强调他们的观点可能忽视了潜在威胁或未能优先考虑可持续性。
                 直接回应他们的观点,利用以下数据来源为交易者的决策构建一个令人信服的低风险方案:
                 市场研究报告: {market_research_report}
-                社交媒体情绪报告: {sentiment_report}
-                最新世界事务报告: {news_report}
+                宏观数据报告: {macro_report}
+                新闻报告: {news_report}
                 公司基本面报告: {fundamentals_report}
                 以下是当前的对话历史: {history} 以下是激进型分析师的最新回应: {current_risky_response} 以下是中性型分析师的最新回应: {current_neutral_response}。如果没有其他观点的回应,请不要臆测,只需陈述您的观点。
                 通过质疑他们的乐观态度并强调他们可能忽视的潜在风险来参与讨论。

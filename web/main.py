@@ -86,7 +86,7 @@ class WebMessageBuffer:
         self.final_report = None
         self.agent_status = {
             "Market Analyst": "pending",
-            "Social Analyst": "pending",
+            "Macro Data Analyst": "pending",
             "News Analyst": "pending",
             "Fundamentals Analyst": "pending",
             "Bull Researcher": "pending",
@@ -101,7 +101,7 @@ class WebMessageBuffer:
         self.current_agent = None
         self.report_sections = {
             "market_report": None,
-            "sentiment_report": None,
+            "macro_report": None,
             "news_report": None,
             "fundamentals_report": None,
             "investment_plan": None,
@@ -139,7 +139,7 @@ class WebMessageBuffer:
         if latest_section and latest_content:
             section_titles = {
                 "market_report": "Market Analysis",
-                "sentiment_report": "Social Sentiment",
+                "macro_report": "Macro Data Analysis",
                 "news_report": "News Analysis",
                 "fundamentals_report": "Fundamentals Analysis",
                 "investment_plan": "Research Team Decision",
@@ -159,7 +159,8 @@ class WebMessageBuffer:
             self.report_sections[section]
             for section in [
                 "market_report",
-                "sentiment_report",
+                "macro_report",
+                "history_report",
                 "news_report",
                 "fundamentals_report",
             ]
@@ -169,10 +170,10 @@ class WebMessageBuffer:
                 report_parts.append(
                     f"### Market Analysis\n{self.report_sections['market_report']}"
                 )
-            if self.report_sections["sentiment_report"]:
+            if self.report_sections["macro_report"]:
                 report_parts.append(
-                    f"### Social Sentiment\n"
-                    f"{self.report_sections['sentiment_report']}"
+                    f"### Macro Data Analysis\n"
+                    f"{self.report_sections['macro_report']}"
                 )
             if self.report_sections["news_report"]:
                 report_parts.append(
@@ -320,8 +321,8 @@ async def get_home():
                                                         <label class="form-check-label" for="marketAnalyst">市场分析师</label>
                                                     </div>
                                                     <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="socialAnalyst" checked>
-                                                        <label class="form-check-label" for="socialAnalyst">社交媒体分析师</label>
+                                                        <input class="form-check-input" type="checkbox" id="macroDataAnalyst" checked>
+                                                        <label class="form-check-label" for="macroDataAnalyst">宏观数据分析师</label>
                                                     </div>
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox" id="newsAnalyst" checked>
@@ -463,7 +464,7 @@ async def get_home():
             function getSelectedAnalysts() {
                 const analysts = [];
                 if (document.getElementById('marketAnalyst').checked) analysts.push('market');
-                if (document.getElementById('socialAnalyst').checked) analysts.push('social');
+                if (document.getElementById('macroDataAnalyst').checked) analysts.push('macro_data');
                 if (document.getElementById('newsAnalyst').checked) analysts.push('news');
                 if (document.getElementById('fundamentalsAnalyst').checked) analysts.push('fundamentals');
                 return analysts;
@@ -525,7 +526,7 @@ async def get_home():
                 container.innerHTML = '';
 
                 const teams = {
-                    'Analyst Team': ['Market Analyst', 'Social Analyst', 'News Analyst', 'Fundamentals Analyst'],
+                    'Analyst Team': ['Market Analyst', 'Macro Data Analyst', 'News Analyst', 'Fundamentals Analyst'],
                     'Research Team': ['Bull Researcher', 'Bear Researcher', 'Research Manager'],
                     'Trading Team': ['Trader'],
                     'Risk Management': ['Risky Analyst', 'Neutral Analyst', 'Safe Analyst'],
@@ -705,7 +706,7 @@ async def start_analysis(request: AnalysisRequest):
         analyst_types = []
         analyst_mapping = {
             "market": AnalystType.MARKET,
-            "social": AnalystType.SOCIAL,
+            "macro_data": AnalystType.MACRO_DATA,
             "news": AnalystType.NEWS,
             "fundamentals": AnalystType.FUNDAMENTALS,
         }
@@ -826,7 +827,7 @@ async def run_web_analysis(
             # 修复智能体名称映射
             agent_name_mapping = {
                 "market": "Market Analyst",
-                "social": "Social Analyst", 
+                "macro_data": "Macro Data Analyst", 
                 "news": "News Analyst",
                 "fundamentals": "Fundamentals Analyst"
             }
@@ -848,7 +849,7 @@ async def run_web_analysis(
             # 修复智能体名称映射
             agent_name_mapping = {
                 "market": "Market Analyst",
-                "social": "Social Analyst", 
+                "macro_data": "Macro Data Analyst", 
                 "news": "News Analyst",
                 "fundamentals": "Fundamentals Analyst"
             }
@@ -867,7 +868,7 @@ async def run_web_analysis(
         # 英文段落键到中文文件名的映射
         chinese_filename_map = {
             "market_report": "市场分析.md",
-            "sentiment_report": "社交情绪.md",
+            "macro_report": "宏观数据分析.md",
             "news_report": "新闻分析.md",
             "fundamentals_report": "基本面分析.md",
             "investment_plan": "研究团队决策.md",
@@ -888,7 +889,7 @@ async def run_web_analysis(
                 # 更新Web界面报告 - 使用实际的文件名映射
                 section_mapping = {
                     "market_report": "market_report",
-                    "sentiment_report": "sentiment_report", 
+                    "macro_report": "macro_report", 
                     "news_report": "news_report",
                     "fundamentals_report": "fundamentals_report",
                     "investment_plan": "investment_plan",

@@ -204,7 +204,7 @@ class TradingAgentsGraph:
                             print(f"\n📊 市场分析师报告 (步骤 {step_count}):")
                             print("-" * 40)
                             print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
-                        elif "sentiment_report" in chunk:
+                        elif "macro_report" in chunk:
                             print(f"\n💬 社交媒体分析师报告 (步骤 {step_count}):")
                             print("-" * 40)
                             print(latest_message.content[:200] + "..." if len(latest_message.content) > 200 else latest_message.content)
@@ -283,7 +283,7 @@ class TradingAgentsGraph:
             "company_of_interest": final_state["company_of_interest"],
             "trade_date": final_state["trade_date"],
             "market_report": final_state["market_report"],
-            "sentiment_report": final_state["sentiment_report"],
+            "macro_report": final_state["macro_report"],
             "news_report": final_state["news_report"],
             "fundamentals_report": final_state["fundamentals_report"],
             "investment_debate_state": {

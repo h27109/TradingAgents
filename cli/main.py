@@ -46,7 +46,7 @@ class MessageBuffer:
         self.agent_status = {
             # Analyst Team
             "Market Analyst": "pending",
-            "Social Analyst": "pending",
+            "Macro Data Analyst": "pending",
             "News Analyst": "pending",
             "Fundamentals Analyst": "pending",
             # Research Team
@@ -65,7 +65,7 @@ class MessageBuffer:
         self.current_agent = None
         self.report_sections = {
             "market_report": None,
-            "sentiment_report": None,
+            "macro_report": None,
             "news_report": None,
             "fundamentals_report": None,
             "investment_plan": None,
@@ -106,7 +106,7 @@ class MessageBuffer:
             # Format the current section for display
             section_titles = {
                 "market_report": "Market Analysis",
-                "sentiment_report": "Social Sentiment",
+                "macro_report": "Macro Data Analysis",
                 "news_report": "News Analysis",
                 "fundamentals_report": "Fundamentals Analysis",
                 "investment_plan": "Research Team Decision",
@@ -128,7 +128,7 @@ class MessageBuffer:
             self.report_sections[section]
             for section in [
                 "market_report",
-                "sentiment_report",
+                "macro_report",
                 "news_report",
                 "fundamentals_report",
             ]
@@ -138,10 +138,10 @@ class MessageBuffer:
                 report_parts.append(
                     f"### Market Analysis\n{self.report_sections['market_report']}"
                 )
-            if self.report_sections["sentiment_report"]:
+            if self.report_sections["macro_report"]:
                 report_parts.append(
-                    f"### Social Sentiment\n"
-                    f"{self.report_sections['sentiment_report']}"
+                    f"### Macro Data Analysis\n"
+                    f"{self.report_sections['macro_report']}"
                 )
             if self.report_sections["news_report"]:
                 report_parts.append(
@@ -221,7 +221,7 @@ def update_display(layout, spinner_text=None):
     teams = {
         "Analyst Team": [
             "Market Analyst",
-            "Social Analyst",
+            "Macro Data Analyst",
             "News Analyst",
             "Fundamentals Analyst",
         ],
@@ -523,12 +523,12 @@ def display_complete_report(final_state):
             )
         )
 
-    # Social Analyst Report
-    if final_state.get("sentiment_report"):
+    # Macro Data Analyst Report
+    if final_state.get("macro_report"):
         analyst_reports.append(
             Panel(
-                Markdown(final_state["sentiment_report"]),
-                title="社交媒体分析师",
+                Markdown(final_state["macro_report"]),
+                title="宏观数据分析师",
                 border_style="blue",
                 padding=(1, 2),
             )

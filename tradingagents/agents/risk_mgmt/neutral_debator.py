@@ -12,7 +12,7 @@ async def create_neutral_debator(llm):
         current_safe_response = risk_debate_state.get("current_safe_response", "")
 
         market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
+        macro_report = state["macro_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
 
@@ -25,7 +25,7 @@ async def create_neutral_debator(llm):
                     您的任务是挑战激进型和保守型分析师的观点,指出每种观点可能过于乐观或过于谨慎的地方。
                     利用以下数据来源的见解来支持一个温和、可持续的策略来调整交易者的决定:
                     市场研究报告: {market_research_report}
-                    社交媒体情绪报告: {sentiment_report}
+                    宏观数据报告: {macro_report}
                     最新世界事务报告: {news_report}
                     公司基本面报告: {fundamentals_report}
                     以下是当前的对话历史: {history} 以下是激进型分析师的最新回应: {current_risky_response} 以下是保守型分析师的最新回应: {current_safe_response}。如果没有其他观点的回应,请不要臆测,只需陈述您的观点。

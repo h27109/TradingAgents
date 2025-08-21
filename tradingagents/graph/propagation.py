@@ -25,7 +25,14 @@ class Propagator:
             "company_name": company_name,
             "trade_date": str(trade_date),
             "investment_debate_state": InvestDebateState(
-                {"history": "", "current_response": "", "count": 0}
+                {
+                    "history": "", 
+                    "current_response": "", 
+                    "count": 0,
+                    "bull_history": "",
+                    "bear_history": "",
+                    "judge_decision": ""
+                }
             ),
             "risk_debate_state": RiskDebateState(
                 {
@@ -34,13 +41,19 @@ class Propagator:
                     "current_safe_response": "",
                     "current_neutral_response": "",
                     "count": 0,
+                    "latest_speaker": "",
+                    "judge_decision": ""
                 }
             ),
             "market_report": "",
             "fundamentals_report": "",
-            "sentiment_report": "",
+            "macro_report": "",
             "news_report": "",
             "history_analysis_report": "",
+            "investment_plan": "",
+            "trader_investment_plan": "",
+            "final_trade_decision": "",
+            "sender": ""
         }
 
     def get_graph_args(self) -> Dict[str, Any]:

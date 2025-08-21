@@ -185,7 +185,7 @@ config = get_config().to_dict()
 ta = TradingAgentsGraph(debug=True, config=config)
 
 # forward propagate
-_, decision = ta.propagate("NVDA", "2024-05-10")
+_, decision = ta.propagate("300130.SZ", "2024-05-10")
 print(decision)
 ```
 
@@ -206,7 +206,7 @@ config["online_tools"] = True # Use online tools or cached data
 ta = TradingAgentsGraph(debug=True, config=config)
 
 # forward propagate
-_, decision = ta.propagate("NVDA", "2024-05-10")
+_, decision = ta.propagate("300130.SZ", "2024-05-10")
 print(decision)
 ```
 

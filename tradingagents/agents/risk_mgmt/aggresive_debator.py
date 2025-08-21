@@ -12,7 +12,7 @@ async def create_risky_debator(llm):
         current_neutral_response = risk_debate_state.get("current_neutral_response", "")
 
         market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
+        macro_report = state["macro_report"]
         news_report = state["news_report"]
         fundamentals_report = state["fundamentals_report"]
 
@@ -27,8 +27,8 @@ async def create_risky_debator(llm):
                 您的任务是通过质疑和批评保守和中性的立场,为交易者的决定构建一个令人信服的论证,说明为什么您的高回报视角提供了最佳的前进道路。
                 将以下来源的见解纳入您的论点:
                 市场研究报告: {market_research_report}
-                社交媒体情绪报告: {sentiment_report}
-                最新世界事务报告: {news_report}
+                宏观数据报告: {macro_report}
+                新闻报告: {news_report}
                 公司基本面报告: {fundamentals_report}
                 以下是当前的对话历史: {history} 以下是保守型分析师的最新论点: {current_safe_response} 以下是中性型分析师的最新论点: {current_neutral_response}。如果没有其他观点的回应,请不要臆测,只需陈述您的观点。
                 通过解决提出的具体担忧,驳斥他们逻辑中的弱点,并主张承担风险以超越市场常态,积极参与讨论。

@@ -25,7 +25,7 @@ class ConditionalLogic:
         last_message = messages[-1]
         if last_message.tool_calls:
             return "tools_macro_data"
-        return "Msg Clear Macro Data"
+        return "Msg Clear Macro_data"
 
     def should_continue_news(self, state: AgentState):
         """Determine if news analysis should continue."""
