@@ -2,31 +2,25 @@
 
 此文件为 Claude Code (claude.ai/code) 提供在此代码库中工作的指导。
 
-## 概述
-TradingAgents 是一个多智能体 LLM 金融交易框架，模拟真实交易公司的结构，包含分析、研究、交易和风险管理等专门智能体。
+## 项目概述
+TradingAgents 是一个多智能体 LLM 金融交易框架，通过专业化的智能体模拟真实交易公司的结构，包括分析、研究、交易和风险管理，使用 LangGraph 进行编排。
 
-## 快速开始
+## 快速开始命令
 
-### 安装
+### 安装与配置
 ```bash
-# 克隆并设置
-git clone https://github.com/h27109/TradingAgents.git
-cd TradingAgents
-checkout Chese_stock
-
-# 安装依赖（使用 uv/pip）
-uv sync  # 或: pip install -e .
+# 克隆并安装依赖
+uv sync
+# 或者: pip install -e .
 
 # 配置环境
 cp .env.example .env
-# 编辑 .env 填入你的 API 密钥
+# 编辑 .env 文件，填入 API 密钥（至少需要 LLM_API_KEY 和 EMBEDDING_API_KEY）
 ```
 
-### 基本命令
-
-#### CLI 使用
+### 运行系统
 ```bash
-# 交互式 CLI 与丰富界面
+# 交互式 CLI
 python -m cli.main
 
 # 直接分析
@@ -34,131 +28,100 @@ python -c "
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.config import get_config
 import asyncio
-
 async def run():
-    ta = TradingAgentsGraph(debug=True, config=get_config().to_dict())
+    ta = TradingAgentsGraph(config=get_config().to_dict())
     await ta.async_init()
     _, decision = await ta.propagate('300130.SZ', '2024-05-10')
     print(decision)
-
 asyncio.run(run())
 "
 ```
 
-#### 配置
-.env 中的关键配置参数：
-- `LLM_PROVIDER`: openai, anthropic, google, ollama, openrouter, deepseek
-- `LLM_API_KEY`: 你的 LLM API 密钥
-- `EMBEDDING_API_KEY`: 嵌入模型 API 密钥
-- `ONLINE_TOOLS=true`: 启用实时数据（需要 TAVILY_API_KEY, FINNHUB_API_KEY）
-
-## 架构概览
-
-### 核心组件
-```
-tradingagents/
-├── graph/
-│   ├── trading_graph.py      # 主协调器
-│   ├── setup.py             # 图初始化
-│   ├── propagation.py       # 状态管理
-│   ├── reflection.py        # 内存更新
-│   └── signal_processing.py # 最终信号处理
-├── agents/
-│   ├── analysts/            # 市场、宏观、新闻、基本面、历史分析
-│   ├── researchers/         # 多头/空头研究员
-│   ├── trader/              # 交易决策
-│   ├── risk_mgmt/           # 风险评估
-│   └── mcp_server/          # 工具集成
-└── config.py               # 配置管理
-```
-
-### 智能体流程
-1. **分析师团队**: 市场、宏观、新闻、基本面、历史分析回顾
-2. **研究团队**: 多头/空头辩论与研究经理
-3. **交易团队**: 投资计划创建
-4. **风险管理**: 风险评估辩论
-5. **投资组合管理**: 最终决策批准
-
-### 关键类
-- `TradingAgentsGraph`: 主入口点
-- `AgentState`: 智能体状态管理
-- `FinancialSituationMemory`: 智能体持久内存
-- `McpServers`: 外部数据源集成
-
-## 开发设置
-
-### 运行测试
+### 开发命令
 ```bash
-# 安装开发依赖
-uv add --dev pytest black flake8 isort mypy
+# 运行特定测试
+python -m pytest test_history_analyst.py -v
+python -m pytest test_llm_integration.py::TestLLMIntegration::test_specific_method -v
 
-# 格式化代码
+# 代码质量检查
 black tradingagents/ cli/
 isort tradingagents/ cli/
-
-# 类型检查
 mypy tradingagents/
+flake8 tradingagents/ --max-line-length=88 --ignore=E203,W503
+
+# 完整测试套件
+python -m pytest --cov=tradingagents --cov-report=html
 ```
 
-### 常见开发任务
+## 架构概述
 
-#### 添加新分析师
-1. 在 `tradingagents/agents/analysts/` 中创建智能体
-2. 添加到 `tradingagents/graph/setup.py`
-3. 在 CLI 中更新智能体选择
+### 核心组件
+- **TradingAgentsGraph**: 主协调器，负责整个工作流的协调
+- **AgentState**: 所有智能体的状态管理，包含分析结果和决策
+- **FinancialSituationMemory**: 使用 ChromaDB 的持久化记忆系统，用于学习历史决策
+- **McpServers**: 通过模型上下文协议集成外部数据源
+- **LangGraph**: 多智能体协调和状态管理
 
-#### 自定义配置
+### 智能体工作流
+1. **分析师团队**（并行）：市场、宏观数据、新闻、基本面、历史分析
+2. **研究团队**：多头/空头研究员 + 研究经理辩论
+3. **交易员**：制定投资计划
+4. **风险管理**：风险评估辩论
+5. **投资组合经理**：最终决策批准
+
+### 关键配置
+- `LLM_PROVIDER`: openai, anthropic, google, ollama, openrouter, deepseek
+- `ONLINE_TOOLS=true`: 启用实时数据（需要 TAVILY_API_KEY, FINNHUB_API_KEY）
+- `MAX_DEBATE_ROUNDS`: 控制研究辩论轮数
+- `DEBUG_MODE=true`: 启用详细日志
+
+### 目录结构
+```
+tradingagents/
+├── graph/                 # LangGraph 编排
+│   ├── trading_graph.py   # 主协调器
+│   ├── setup.py          # 智能体初始化
+│   └── propagation.py    # 状态管理
+├── agents/
+│   ├── analysts/         # 市场、宏观、新闻、基本面、历史分析
+│   ├── researchers/      # 多头/空头研究员
+│   ├── trader/           # 交易决策
+│   ├── risk_mgmt/        # 风险评估
+│   └── mcp_server/       # 外部数据工具
+├── config.py             # 环境配置
+├── mcp_server_config.py  # 可用的MCP服务器配置
+├── cli/main.py           # 交互式 CLI
+└── web/                  # FastAPI Web 接口
+```
+
+### 数据流
+1. 输入：股票代码 + 分析日期
+2. 通过 MCP 工具进行数据处理
+3. 并行分析师评估
+4. 研究辩论阶段
+5. 交易决策 + 风险评估
+6. 输出：最终信号 + 详细报告
+7. 记忆更新以持续学习
+
+### 自定义配置
 ```python
 from tradingagents.config import get_config
-
 config = get_config().to_dict()
 config.update({
     "max_debate_rounds": 3,
-    "online_tools": True,
     "deep_think_llm": "gpt-4",
-    "quick_think_llm": "gpt-3.5-turbo"
+    "selected_analysts": ["market", "fundamentals"]
 })
 ```
 
-#### 调试
-```python
+### 调试
+```bash
 # 启用调试模式
-config["debug_mode"] = True
+DEBUG_MODE=true python -m cli.main
 
-# 检查日志在 eval_results/{ticker}/TradingAgentsStrategy_logs/
+# 查看日志
+tail -f eval_results/*/TradingAgentsStrategy_logs/*.log
+
+# 监控 API 调用
+LLM_PROVIDER=openai DEBUG_MODE=true python -c "..."
 ```
-
-## API 使用模式
-
-### 基础分析
-```python
-ta = TradingAgentsGraph(selected_analysts=["market", "fundamentals"])
-await ta.async_init()
-state, decision = await ta.propagate("300130.SZ", "2024-01-15")
-```
-
-### 高级配置
-```python
-# 自定义智能体选择
-ta = TradingAgentsGraph(
-    selected_analysts=["market", "macro_data", "news"],
-    config={
-        "llm_provider": "anthropic",
-        "deep_think_llm": "claude-3-opus",
-        "max_debate_rounds": 2
-    }
-)
-```
-
-## 文件结构
-- `results/`: 分析输出
-- `eval_results/`: 详细日志和状态
-- `dataflows/data_cache/`: 缓存的市场数据
-- `web/`: Web 界面（FastAPI）
-
-## 重要说明
-- 需要 Python 3.10+
-- 使用 LangGraph 进行编排
-- MCP 服务器用于外部数据
-- 内存系统用于从过去决策中学习
-- 非投资建议 - 仅为研究框架
