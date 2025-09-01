@@ -3,6 +3,7 @@ from chromadb.config import Settings
 from openai import AsyncOpenAI
 import asyncio
 import logging
+import chromadb
 
 logger = logging.getLogger(__name__)
 
